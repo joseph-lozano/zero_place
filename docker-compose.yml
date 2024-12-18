@@ -1,0 +1,68 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_ZERO_URL=${VITE_ZERO_URL}
+    restart: unless-stopped
+    ports:
+      - "4000:80"
+    environment:
+      - VITE_ZERO_URL=${VITE_ZERO_URL}
+
+  db:
+    image: postgres:16
+    healthcheck:
+      test: pg_isready -U postgres --dbname=postgres
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=zero_place
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    command: |
+      postgres 
+      -c wal_level=logical
+      -c max_wal_senders=10 
+      -c max_replication_slots=5 
+      -c hot_standby=on 
+      -c hot_standby_feedback=on
+      -c listen_addresses='*'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  migrate:
+    image: postgres:16
+    volumes:
+      - ./migrate.sql:/docker-entrypoint-initdb.d/migrate.sql
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=zero_place
+    command: [ "psql", "-h", "db", "-U", "postgres", "-d", "zero_place", "-f", "/docker-entrypoint-initdb.d/migrate.sql" ]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  zero:
+    image: rocicorp/zero
+    environment:
+      - ZERO_UPSTREAM_DB=postgres://postgres:postgres@db:5432/zero_place
+      - ZERO_CVR_DB=postgres://postgres:postgres@db:5432/zero_place
+      - ZERO_CHANGE_DB=postgres://postgres:postgres@db:5432/zero_place
+      - ZERO_REPLICA_FILE=zero.db
+      - ZERO_NUM_SYNC_WORKERS=1
+      - ZERO_SCHEMA_JSON={"permissions":{"cells":{"row":{"update":{},"delete":[]}}},"schema":{"version":1,"tables":{"cells":{"tableName":"cells","primaryKey":["id"],"columns":{"canvas_id":{"type":"string","optional":false},"color":{"type":"string","optional":false},"id":{"type":"string","optional":false},"inserted_at":{"type":"string","optional":false},"updated_at":{"type":"string","optional":false},"x_position":{"type":"number","optional":false},"y_position":{"type":"number","optional":false}},"relationships":{}}}}}
+    ports:
+      - "4848:4848"
+    depends_on:
+      - db
+      - migrate
+    restart: unless-stopped
+volumes:
+  postgres_data:
