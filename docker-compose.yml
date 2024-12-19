@@ -12,7 +12,9 @@ services:
       - VITE_ZERO_URL=${VITE_ZERO_URL}
 
   db:
-    image: postgres:16
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
     healthcheck:
       test: pg_isready -U postgres --dbname=postgres
       interval: 10s
@@ -25,6 +27,8 @@ services:
       - POSTGRES_HOST_AUTH_METHOD=trust
     command: |
       postgres 
+      -c shared_preload_libraries='pg_cron'
+      -c cron.database_name='zero_place'
       -c wal_level=logical
       -c max_wal_senders=10 
       -c max_replication_slots=5 

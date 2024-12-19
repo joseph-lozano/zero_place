@@ -72,7 +72,10 @@ export default function ColorGrid() {
   return (
     <div className="min-h-screen flex flex-col bg-[#101010] text-white">
       <div className="p-4 bg-[#1B1B1B] border-b border-[#2E2E2E] z-10">
-        <h1 className="text-2xl font-bold mb-4">Zero Place</h1>
+        <h1 className="text-2xl font-bold mb-2">Zero Place</h1>
+        <p className="text-sm text-gray-400 mb-4">
+          Data will be cleared every 30 minutes.
+        </p>
         <div className="flex justify-between">
           <div className="flex gap-2">
             {COLORS.map((color) => (
