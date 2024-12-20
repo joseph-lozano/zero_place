@@ -40,19 +40,6 @@ services:
     ports:
       - "5432:5432"
 
-  migrate:
-    image: postgres:16
-    volumes:
-      - ./migrate.sql:/docker-entrypoint-initdb.d/migrate.sql
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=zero_place
-    command: [ "psql", "-h", "db", "-U", "postgres", "-d", "zero_place", "-f", "/docker-entrypoint-initdb.d/migrate.sql" ]
-    depends_on:
-      db:
-        condition: service_healthy
-
   zero:
     image: rocicorp/zero
     environment:
@@ -66,7 +53,6 @@ services:
       - "4848:4848"
     depends_on:
       - db
-      - migrate
     restart: unless-stopped
 volumes:
   postgres_data:
